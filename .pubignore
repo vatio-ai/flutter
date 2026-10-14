@@ -1,0 +1,10 @@
+# Replaces .gitignore for pub, so it repeats it.
+.dart_tool/
+build/
+pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+.idea/
+*.iml
+
+.github/

@@ -1,0 +1,53 @@
+name: Publish to pub.dev
+
+# Runs in github.com/vatio-ai/flutter, the public mirror of sdk-flutter/ in
+# Vatio's own repository. The mirror tags each new version there, and pub.dev
+# only accepts an automated publish from a tag push, so the tag is the release.
+#
+# pub.dev trusts this repository through GitHub's OIDC token:
+#   pub.dev/packages/vatio/admin -> Automated publishing -> GitHub Actions,
+#   repository vatio-ai/flutter, tag pattern {{version}}.
+# The first version has to be published by hand before that page exists.
+
+on:
+  push:
+    tags: ["[0-9]+.[0-9]+.[0-9]+*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # The first version was published by hand, and a tag the mirror pushes
+      # again must not fail: a version pub.dev already has is skipped.
+      - name: Is this version already on pub.dev?
+        id: version
+        run: |
+          set -euo pipefail
+          version=$(sed -nE 's/^version: *([^ ]+).*/\1/p' pubspec.yaml)
+          [ "$version" = "$GITHUB_REF_NAME" ] || { echo "::error::Tag $GITHUB_REF_NAME, pubspec.yaml says $version."; exit 1; }
+          status=$(curl -s -o /dev/null -w '%{http_code}' "https://pub.dev/api/packages/vatio/versions/$version")
+          case "$status" in
+            200) echo "vatio $version is already on pub.dev; nothing to do."
+                 echo "publish=false" >> "$GITHUB_OUTPUT" ;;
+            404) echo "publish=true" >> "$GITHUB_OUTPUT" ;;
+            *)   echo "pub.dev answered $status; not guessing." >&2
+                 exit 1 ;;
+          esac
+
+      # Exchanges the OIDC token for pub.dev credentials; flutter pub uses them.
+      - if: steps.version.outputs.publish == 'true'
+        uses: dart-lang/setup-dart@v1
+
+      - if: steps.version.outputs.publish == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - if: steps.version.outputs.publish == 'true'
+        run: |
+          flutter pub get
+          flutter pub publish --force

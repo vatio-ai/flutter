@@ -1,0 +1,14 @@
+# Made by `flutter create . --org ai.vatio --platforms ios,android` (README.md).
+android/
+ios/
+macos/
+test/
+.metadata
+
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.idea/
+*.iml
+build/
+pubspec.lock
