@@ -9,18 +9,9 @@ you draw it however your app looks.
 
 ## Setup
 
-**1. Allow your app.** A publishable token only works from its own allowed
-origins. A Flutter app has one per platform: `ios-app://` plus its bundle id
-(iOS and macOS) and `android-app://` plus its package name (its
-`applicationId`):
-
-```bash
-vatio tokens create --env live --label app \
-  --origin ios-app://com.acme.app --origin android-app://com.acme.app
-```
-
-To add them to a token you already have, use `vatio tokens origins PREFIX URL...`
-or the tokens section of **Channels → Web widget** in the inbox.
+**1. Allow your app.** A publishable key only works from the origins it
+allows, and a Flutter app has one per platform. Creating the key and allowing
+the app is in the Flutter guide: <https://vatio.ai/docs/sdk/flutter>.
 
 **2. Add the package:**
 
