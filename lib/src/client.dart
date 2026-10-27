@@ -20,7 +20,7 @@ class Vatio {
     http.Client? httpClient,
   }) : _http = httpClient ?? http.Client();
 
-  static const version = '0.1.0';
+  static const version = '0.1.1';
 
   final String workspace;
   final String token;
@@ -45,19 +45,22 @@ class Vatio {
     return _decode(() => _configFrom(json));
   }
 
-  /// Every conversation this visitor has had on this workspace from this
-  /// device, newest first. Empty for a visitor who never talked here. Pass
-  /// the same [visitorToken] you give [VatioChat].
+  /// Every conversation this visitor has had on this workspace, newest
+  /// first. Empty for a visitor who never talked here. Pass the same
+  /// [visitorToken] you give [VatioChat]: a signed-in visitor's
+  /// conversations come back on any device, after a reinstall too.
   Future<List<VatioConversation>> conversations({String? visitorToken}) async {
     _validateToken();
     final visitorRef = await _storage(visitorToken).visitorRef();
-    if (visitorRef == null) return const [];
+    final signedIn = visitorToken != null && visitorToken.isNotEmpty;
+    if (visitorRef == null && !signedIn) return const [];
 
-    // A conversation this person had signed in is listed only alongside
-    // their token.
+    // A conversation this person had signed in is listed by their token,
+    // and only alongside it.
+    final query = visitorRef == null ? '' : '?visitor_ref=${Uri.encodeComponent(visitorRef)}';
     final json = await _request(
       'GET',
-      'chats?visitor_ref=${Uri.encodeComponent(visitorRef)}',
+      'chats$query',
       bearer: token,
       visitorToken: visitorToken,
     );
