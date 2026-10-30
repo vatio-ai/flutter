@@ -2,7 +2,7 @@ name: vatio
 description: >-
   Talk to a Vatio agent from your own Flutter app: the conversation as a
   ChangeNotifier, with files, voice notes and signed-in users. No UI.
-version: 0.1.1
+version: 0.2.0
 homepage: https://vatio.ai/docs/sdk/flutter
 repository: https://github.com/vatio-ai/flutter
 issue_tracker: https://github.com/vatio-ai/flutter/issues

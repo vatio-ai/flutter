@@ -172,34 +172,51 @@ class Bubble extends StatelessWidget {
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.8),
-        child: Opacity(
-          opacity: message.isPending ? 0.6 : 1,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: mine ? colors.primary : colors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final attachment in message.attachments)
-                    AttachmentView(attachment: attachment, color: foreground),
-                  // A file-only message carries a stand-in ("Image"); the
-                  // file above already says it.
-                  if (!message.isMediaLabel && message.content.isNotEmpty)
-                    TypewriterText(
-                      text: message.content,
-                      paints: paints,
-                      onFinish: onFinish,
-                      style: TextStyle(color: foreground),
-                    ),
-                ],
+        child: Column(
+          crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Opacity(
+              opacity: message.isPending ? 0.6 : 1,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: mine ? colors.primary : colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final attachment in message.attachments)
+                        AttachmentView(attachment: attachment, color: foreground),
+                      // A file-only message carries a stand-in ("Image"); the
+                      // file above already says it.
+                      if (!message.isMediaLabel && message.content.isNotEmpty)
+                        TypewriterText(
+                          text: message.textWithoutButtons,
+                          paints: paints,
+                          onFinish: onFinish,
+                          style: TextStyle(color: foreground),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
+            // A link the reply sends as a button is drawn as one under the
+            // bubble, and comes out of the text above it.
+            for (final button in message.buttons.where((button) => button.type == 'url'))
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: OutlinedButton.icon(
+                  onPressed: () => launchUrl(Uri.parse(button.url)),
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: Text(button.title),
+                ),
+              ),
+          ],
         ),
       ),
     );

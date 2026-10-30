@@ -20,6 +20,7 @@ class VatioMessage {
     this.isPending = false,
     this.attachments = const [],
     this.isMediaLabel = false,
+    this.buttons = const [],
   });
 
   /// Server id. Negative while [isPending], because the server has not
@@ -43,7 +44,19 @@ class VatioMessage {
   /// just a file: draw the attachment, not the word.
   final bool isMediaLabel;
 
+  /// Links the agent's reply sends as buttons. [content] still has each one
+  /// as the agent wrote it, for a client that draws none: to draw them, show
+  /// [textWithoutButtons] and a button per entry under it.
+  final List<VatioButton> buttons;
+
   bool get isFromVisitor => role == VatioRole.user;
+
+  /// [content] without the links its buttons carry, for the text above the
+  /// buttons. A link on a line of its own takes the line with it, one inside
+  /// a sentence leaves its words: how Vatio takes it out of a WhatsApp
+  /// message.
+  String get textWithoutButtons =>
+      buttons.where((button) => button._isLink).fold(content, (text, button) => _withoutLink(text, button.url));
 
   @override
   bool operator ==(Object other) =>
@@ -54,13 +67,66 @@ class VatioMessage {
       other.createdAt == createdAt &&
       other.isPending == isPending &&
       listEquals(other.attachments, attachments) &&
-      other.isMediaLabel == isMediaLabel;
+      other.isMediaLabel == isMediaLabel &&
+      listEquals(other.buttons, buttons);
 
   @override
-  int get hashCode => Object.hash(id, role, content, createdAt, isPending, Object.hashAll(attachments), isMediaLabel);
+  int get hashCode => Object.hash(
+      id, role, content, createdAt, isPending, Object.hashAll(attachments), isMediaLabel, Object.hashAll(buttons));
 
   @override
   String toString() => 'VatioMessage($id, ${role.name}${isPending ? ', pending' : ''}: $content)';
+}
+
+/// A link the reply sends as a button.
+@immutable
+class VatioButton {
+  const VatioButton({this.type = 'url', required this.title, required this.url});
+
+  /// `url` today. Skip a button whose type you do not know.
+  final String type;
+
+  /// What the button says, in the visitor's language.
+  final String title;
+
+  /// Where it goes, for a `url` button.
+  final String url;
+
+  bool get _isLink => type == 'url' && RegExp(r'^https?://', caseSensitive: false).hasMatch(url);
+
+  @override
+  bool operator ==(Object other) =>
+      other is VatioButton && other.type == type && other.title == title && other.url == url;
+
+  @override
+  int get hashCode => Object.hash(type, title, url);
+}
+
+final _leftover = RegExp(r'^[\s\p{P}\p{S}]*$', unicode: true);
+
+String _withoutLink(String text, String url) {
+  final escaped = RegExp.escape(url);
+  final markdown = RegExp(r'\[([^\]\n]*)\]\(' + escaped + r'\)');
+  final lines = text.split('\n');
+  final index = lines.indexWhere((line) => markdown.hasMatch(line) || line.contains(url));
+  if (index == -1) return text;
+
+  final line = lines[index];
+  final match = markdown.firstMatch(line);
+  String? kept;
+  if (match != null) {
+    final rest = line.replaceRange(match.start, match.end, '');
+    kept = _leftover.hasMatch(rest) ? null : line.replaceRange(match.start, match.end, match.group(1)!);
+  } else {
+    final rest = line.replaceFirst(RegExp(escaped + r'\.?'), '');
+    kept = _leftover.hasMatch(rest) ? null : rest;
+  }
+  if (kept == null) {
+    lines.removeAt(index);
+  } else {
+    lines[index] = kept;
+  }
+  return lines.join('\n').replaceAll(RegExp(r'\n{3,}'), '\n\n').replaceAll(RegExp(r'[ \t]{2,}'), ' ').trim();
 }
 
 /// What a [VatioAttachment] is, for choosing how to draw it.
@@ -299,7 +365,15 @@ VatioMessage _messageFrom(_Json json) => VatioMessage(
       createdAt: _parseDate(json['occurred_at'] ?? json['created_at']),
       attachments: (json['attachments'] as List? ?? const []).cast<_Json>().map(_attachmentFrom).toList(),
       isMediaLabel: json['content_is_media_label'] as bool? ?? false,
+      buttons: (json['buttons'] as List? ?? const []).cast<_Json>().map(_buttonFrom).nonNulls.toList(),
     );
+
+VatioButton? _buttonFrom(_Json json) {
+  final title = json['title'] as String?;
+  final url = json['url'] as String?;
+  if (title == null || url == null) return null;
+  return VatioButton(type: json['type'] as String? ?? 'url', title: title, url: url);
+}
 
 VatioAttachment _attachmentFrom(_Json json) => VatioAttachment(
       id: json['id'] as int,

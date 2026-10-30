@@ -20,7 +20,7 @@ class Vatio {
     http.Client? httpClient,
   }) : _http = httpClient ?? http.Client();
 
-  static const version = '0.1.1';
+  static const version = '0.2.0';
 
   final String workspace;
   final String token;

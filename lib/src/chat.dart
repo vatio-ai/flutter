@@ -430,6 +430,7 @@ class VatioChat extends ChangeNotifier {
             createdAt: old.createdAt,
             attachments: old.attachments,
             isMediaLabel: isMediaLabel,
+            buttons: old.buttons,
           ),
           ..._messages.skip(index + 1),
         ]);

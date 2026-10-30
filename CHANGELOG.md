@@ -1,3 +1,9 @@
+## 0.2.0
+
+- `VatioMessage.buttons`: the links the agent's reply sends as buttons, each
+  with its `title` and `url`, and `textWithoutButtons`, the message's content
+  without those links, to draw above them. See https://vatio.ai/docs/links#buttons.
+
 ## 0.1.1
 
 - `conversations(visitorToken:)` lists a signed-in visitor's conversations by
